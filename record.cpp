@@ -24,7 +24,6 @@ static int recordCallback( const void *inputBuffer, void *outputBuffer,
 {
     paTestData *data = (paTestData*)userData;
     const SAMPLE *rptr = (const SAMPLE*)inputBuffer;
-    long framesToCalc;
     // unsigned long framesLeft = data->maxFrameIndex - data->frameIndex;
 
     (void) outputBuffer; /* Prevent unused variable warnings. */
@@ -63,11 +62,10 @@ static int recordCallback( const void *inputBuffer, void *outputBuffer,
             }
         }
     }
-    data->frameIndex += framesToCalc;
     return g_finished;
 }
 
-void intHandler(int dummy) {
+void intHandler(int) {
     g_finished = paComplete;
 }
 
