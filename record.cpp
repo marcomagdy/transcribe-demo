@@ -5,14 +5,7 @@
 typedef uint8_t SAMPLE;
 #define SAMPLE_RATE  (48000)
 #define NUM_CHANNELS (1)
-#define NUM_SECONDS (10)
 #define SAMPLE_SILENCE  (128)
-struct paTestData
-{
-    int          frameIndex;  /* Index into sample array. */
-    int          maxFrameIndex;
-    Aws::IOStream* targetStream;
-};
 
 int g_finished = paContinue;
 
@@ -22,23 +15,21 @@ static int recordCallback( const void *inputBuffer, void *outputBuffer,
         PaStreamCallbackFlags statusFlags,
         void *userData )
 {
-    paTestData *data = (paTestData*)userData;
+    auto stream= (Aws::IOStream*)userData;
     const SAMPLE *rptr = (const SAMPLE*)inputBuffer;
-    // unsigned long framesLeft = data->maxFrameIndex - data->frameIndex;
 
     (void) outputBuffer; /* Prevent unused variable warnings. */
     (void) timeInfo;
     (void) statusFlags;
 
-    auto &stream = *data->targetStream;
     if( inputBuffer == nullptr )
     {
         for( unsigned long i=0; i<framesPerBuffer; i++ )
         {
             SAMPLE sample = SAMPLE_SILENCE;
-            stream.write((char*)&sample, sizeof(SAMPLE));
+            stream->write((char*)&sample, sizeof(SAMPLE));
             if (NUM_CHANNELS == 2) {
-                stream.write((char*)&sample, sizeof(SAMPLE));
+                stream->write((char*)&sample, sizeof(SAMPLE));
             }
             else {
             }
@@ -50,15 +41,15 @@ static int recordCallback( const void *inputBuffer, void *outputBuffer,
         for( unsigned long i=0; i < framesPerBuffer; i++ )
         {
             SAMPLE sample = static_cast<SAMPLE>(*rptr++);
-            stream.write((char*)&sample, sizeof(SAMPLE));
+            stream->write((char*)&sample, sizeof(SAMPLE));
             if (NUM_CHANNELS == 2) {
                 sample = static_cast<SAMPLE>(*rptr++);
-                stream.write((char*)&sample, sizeof(SAMPLE));
+                stream->write((char*)&sample, sizeof(SAMPLE));
             }
             else
             {
                 sample = SAMPLE_SILENCE;
-                stream.write((char*)&sample, sizeof(SAMPLE));
+                stream->write((char*)&sample, sizeof(SAMPLE));
             }
         }
     }
@@ -76,16 +67,6 @@ int StartRecording(Aws::IOStream& targetStream)
     PaStreamParameters  inputParameters;
     PaStream*           stream;
     PaError             err = paNoError;
-    paTestData          data;
-    int                 totalFrames;
-    int                 numSamples;
-
-    printf("patest_record.c\n"); fflush(stdout);
-
-    data.targetStream = &targetStream;
-    data.maxFrameIndex = totalFrames = NUM_SECONDS * SAMPLE_RATE; /* Record for a few seconds. */
-    data.frameIndex = 0;
-    numSamples = totalFrames * NUM_CHANNELS;
 
     err = Pa_Initialize();
     if( err != paNoError ) {
@@ -113,7 +94,8 @@ int StartRecording(Aws::IOStream& targetStream)
             paFramesPerBufferUnspecified, // FRAMES_PER_BUFFER
             paClipOff,      /* we won't output out of range samples so don't bother clipping them */
             recordCallback,
-            &data );
+            &targetStream);
+
     if( err != paNoError ) {
         fprintf(stderr, "Failed to open stream.\n");
         goto done;
