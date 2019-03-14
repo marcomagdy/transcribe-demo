@@ -82,7 +82,8 @@ int StartRecording(Aws::IOStream& targetStream)
     }
     inputParameters.channelCount = NUM_CHANNELS;
     inputParameters.sampleFormat = paUInt8;
-    inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultLowInputLatency;
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultHighInputLatency;
+    // inputParameters.suggestedLatency = 0.5;
     inputParameters.hostApiSpecificStreamInfo = nullptr;
 
     /* Record some audio. -------------------------------------------- */
