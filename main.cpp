@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 
         StartStreamTranscriptionRequest request;
         request.SetContentType("application/x-amz-json-1.1"); // this is a bug in the service. It should be application/vnd.amazon.eventstream
-        request.SetMediaSampleRateHertz(48000);
+        request.SetMediaSampleRateHertz(16000);
         request.SetLanguageCode(LanguageCode::en_US);
         request.SetMediaEncoding(MediaEncoding::pcm);
         request.SetEventStreamHandler(handler);

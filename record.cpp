@@ -3,7 +3,7 @@
 #include <aws/core/utils/memory/stl/AWSStreamFwd.h>
 
 typedef uint8_t SAMPLE;
-#define SAMPLE_RATE  (48000)
+#define SAMPLE_RATE  (16000)
 #define NUM_CHANNELS (1)
 #define SAMPLE_SILENCE  (128)
 
