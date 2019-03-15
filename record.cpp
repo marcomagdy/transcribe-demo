@@ -102,12 +102,11 @@ int StartRecording(Aws::IOStream& targetStream)
         fprintf(stderr, "Failed to start stream.\n");
         goto done;
     }
-    printf("\n=== Now recording!! Please speak into the microphone. ===\n"); fflush(stdout);
+    printf("\n=== Now recording!! Speak into the microphone. ===\n"); fflush(stdout);
 
     while( ( err = Pa_IsStreamActive( stream ) ) == 1 )
     {
-        Pa_Sleep(1000);
-        // printf("index = %d\n", data.frameIndex ); fflush(stdout);
+        Pa_Sleep(1000); // TODO: use thread signals rather than busy loop
     }
     if( err < 0 ) goto done;
 
