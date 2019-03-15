@@ -2,10 +2,10 @@
 #include <cstdio>
 #include <aws/core/utils/memory/stl/AWSStreamFwd.h>
 
-typedef uint8_t SAMPLE;
+typedef int16_t SAMPLE;
 #define SAMPLE_RATE  (16000)
 #define NUM_CHANNELS (1)
-#define SAMPLE_SILENCE  (128)
+#define SAMPLE_SILENCE  (0)
 
 int g_finished = paContinue;
 
@@ -46,11 +46,6 @@ static int recordCallback( const void *inputBuffer, void *outputBuffer,
                 sample = static_cast<SAMPLE>(*rptr++);
                 stream->write((char*)&sample, sizeof(SAMPLE));
             }
-            else
-            {
-                sample = SAMPLE_SILENCE;
-                stream->write((char*)&sample, sizeof(SAMPLE));
-            }
         }
     }
     return g_finished;
@@ -81,7 +76,7 @@ int StartRecording(Aws::IOStream& targetStream)
         return -1;
     }
     inputParameters.channelCount = NUM_CHANNELS;
-    inputParameters.sampleFormat = paUInt8;
+    inputParameters.sampleFormat = paInt16;
     inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultHighInputLatency;
     // inputParameters.suggestedLatency = 0.5;
     inputParameters.hostApiSpecificStreamInfo = nullptr;
