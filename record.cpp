@@ -1,5 +1,6 @@
 #include <portaudio.h>
 #include <cstdio>
+#include <csignal>
 #include <aws/core/utils/memory/stl/AWSStreamFwd.h>
 
 typedef int16_t SAMPLE;
