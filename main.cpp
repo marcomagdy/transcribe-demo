@@ -15,14 +15,16 @@ using namespace Aws;
 using namespace Aws::TranscribeStreamingService;
 using namespace Aws::TranscribeStreamingService::Model;
 
-void pipe(Aws::IOStream& from, Aws::IOStream& to)
+void pipe(Aws::IOStream& from, AudioStream& stream)
 {
     char buf[1024];
     while(from)
     {
         from.read(buf, sizeof(buf));
-        if(!to.write(buf, from.gcount()))
-            return;
+        Aws::Vector<unsigned char> bits{buf, buf + from.gcount()};
+        AudioEvent event(std::move(bits));
+        if (!stream.WriteAudioEvent(event))
+            break;
     }
 }
 
@@ -36,7 +38,7 @@ int main(int argc, char** argv)
     }
 
     Aws::SDKOptions options;
-    options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Info;
+    options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
     {
 
@@ -81,12 +83,45 @@ int main(int argc, char** argv)
 
         StartStreamTranscriptionRequest request;
         request.SetContentType("application/x-amz-json-1.1"); // this is a bug in the service. It should be application/vnd.amazon.eventstream
-        request.SetMediaSampleRateHertz(16000);
+        request.SetMediaSampleRateHertz(8000);
         request.SetLanguageCode(LanguageCode::en_US);
         request.SetMediaEncoding(MediaEncoding::pcm);
         request.SetEventStreamHandler(handler);
 
-        auto OnCallback = [&sem](const TranscribeStreamingServiceClient*,
+        auto OnStreamReady = [argv](AudioStream& stream)
+        {
+            if (strcmp(argv[1], "-") == 0)
+            {
+                StartRecording(stream);
+                printf("Done recording\n");
+            }
+            else
+            {
+                auto file = Aws::MakeShared<Aws::FStream>("", argv[1], std::ios_base::in | std::ios_base::binary);
+                if (!file || !*file) {
+                    printf("unable to open file.\n");
+                    return;
+                }
+                printf("Writing the audio data to the stream...\n");
+                pipe(*file, stream); // read from GStreamer and write to the stream
+            }
+
+            /*
+             * Signal to Transcribe that you're done streaming data.
+             * Note: this does not "flush" the data written all the way to the service. Instead, this flushes the data in
+             * the write buffer to the read buffer (wrapping and signing it in the process).
+             */
+            stream.flush();
+
+            /*
+             * Signals to the http client that you don't intend to send more data and that the request is now complete.
+             * This will effectively send any data left in the read buffer to the service and end the request.
+             * To send more data to the service you must create a new request and a new stream.
+             */
+            stream.Close();
+        };
+
+        auto OnResponseCallback = [&sem](const TranscribeStreamingServiceClient*,
                 const Model::StartStreamTranscriptionRequest&,
                 const Model::StartStreamTranscriptionOutcome&,
                 const std::shared_ptr<const Aws::Client::AsyncCallerContext>&)
@@ -96,43 +131,7 @@ int main(int argc, char** argv)
 
         };
 
-        auto requestStream = Aws::MakeShared<Aws::Utils::Event::EventEncoderStream>("");
-        request.SetBody(requestStream);
-        client.StartStreamTranscriptionAsync(request, OnCallback, nullptr/*context*/);
-        printf("Waiting for stream to be ready..\n");
-        while (!requestStream->is_ready_for_streaming()) {
-            std::this_thread::yield();
-        }
-
-        if (strcmp(argv[1], "-") == 0)
-        {
-            StartRecording(*requestStream);
-            printf("Done recording\n");
-        }
-        else
-        {
-            auto file = Aws::MakeShared<Aws::FStream>("", argv[1], std::ios_base::in | std::ios_base::binary);
-            if (!file || !*file) {
-                printf("unable to open file.\n");
-                return 1;
-            }
-            printf("Writing the audio data to the stream...\n");
-            pipe(*file, *requestStream); // read from GStreamer and write to the stream
-        }
-
-        /*
-         * Signal to Transcribe that you're done streaming data.
-         * Note: this does not "flush" the data written all the way to the service. Instead, this flushes the data in
-         * the write buffer to the read buffer (wrapping and signing it in the process).
-         */
-        requestStream->flush();
-
-        /*
-         * Signals to the http client that you don't intend to send more data and that the request is now complete.
-         * This will effectively send any data left in the read buffer to the service and end the request.
-         * To send more data to the service you must create a new request and a new stream.
-         */
-        requestStream->close();
+        client.StartStreamTranscriptionAsync(request, OnStreamReady, OnResponseCallback, nullptr/*context*/);
         sem.WaitOne();
     }
 
