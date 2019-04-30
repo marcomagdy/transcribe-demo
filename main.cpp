@@ -2,10 +2,8 @@
 #include <aws/transcribestreaming/TranscribeStreamingServiceClient.h>
 #include <aws/transcribestreaming/model/StartStreamTranscriptionRequest.h>
 #include <aws/transcribestreaming/model/StartStreamTranscriptionHandler.h>
-#include <aws/core/utils/memory/stl/AWSStreamFwd.h>
 #include <aws/core/utils/threading/Semaphore.h>
 #include <aws/core/utils/threading/Executor.h>
-#include <aws/core/utils/event/EventStream.h>
 
 #include <fstream>
 #include <cstdio>
