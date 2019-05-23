@@ -66,21 +66,8 @@ int main(int argc, char** argv)
         handler.SetOnErrorCallback([](const Aws::Client::AWSError<TranscribeStreamingServiceErrors>& ) {
                 printf("got an error\n");
                 });
-        handler.SetBadRequestExceptionCallback([](const BadRequestException& ) {
-                printf("got bad request exception\n");
-                });
-        handler.SetLimitExceededExceptionCallback([](const LimitExceededException& ) {
-                printf("got limit exceeded exception\n");
-                });
-        handler.SetInternalFailureExceptionCallback([](const InternalFailureException& ) {
-                printf("got internal failure exception\n");
-                });
-        handler.SetConflictExceptionCallback([](const ConflictException& ) {
-                printf("got conflict  exception\n");
-                });
 
         StartStreamTranscriptionRequest request;
-        request.SetContentType("application/x-amz-json-1.1"); // this is a bug in the service. It should be application/vnd.amazon.eventstream
         request.SetMediaSampleRateHertz(8000);
         request.SetLanguageCode(LanguageCode::en_US);
         request.SetMediaEncoding(MediaEncoding::pcm);
