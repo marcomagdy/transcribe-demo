@@ -1,11 +1,10 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.11)
 set(CMAKE_CXX_STANDARD 11)
 project(demo LANGUAGES CXX)
 
 find_package(AWSSDK COMPONENTS transcribestreaming)
 
-add_executable(${PROJECT_NAME} "record.cpp" "main.cpp")
-# add_executable(${PROJECT_NAME} "main.cpp")
+add_executable(${PROJECT_NAME} "main.cpp" "record.cpp")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE portaudio ${AWSSDK_LINK_LIBRARIES})
 
