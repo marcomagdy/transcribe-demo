@@ -4,7 +4,7 @@ project(demo LANGUAGES CXX)
 
 find_package(AWSSDK COMPONENTS transcribestreaming)
 
-add_executable(${PROJECT_NAME} "main.cpp" "record.cpp")
+add_executable(${PROJECT_NAME} "main.cpp" "audio-capture.cpp")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE portaudio ${AWSSDK_LINK_LIBRARIES})
 

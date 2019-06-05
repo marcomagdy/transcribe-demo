@@ -1,5 +1,6 @@
-#include <aws/core/utils/memory/stl/AWSStreamFwd.h>
+#include <aws/core/utils/memory/stl/AWSVector.h>
 #include <aws/core/utils/threading/Semaphore.h>
+#include <aws/transcribestreaming/model/AudioStream.h>
 #include <csignal>
 #include <cstdio>
 #include <portaudio.h>
@@ -12,17 +13,17 @@ Aws::Utils::Threading::Semaphore pasignal(0 /*initialCount*/, 1 /*maxCount*/);
 static int AudioCaptureCallback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer,
     const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void* userData)
 {
-    auto stream = static_cast<Aws::IOStream*>(userData);
-    const SampleType* rptr = static_cast<const SampleType*>(inputBuffer);
+    auto stream = static_cast<Aws::TranscribeStreamingService::Model::AudioStream*>(userData);
+    const auto beg = static_cast<const unsigned char*>(inputBuffer);
+    const auto end = beg + framesPerBuffer * sizeof(SampleType);
 
     (void)outputBuffer; // Prevent unused variable warnings
     (void)timeInfo;
     (void)statusFlags;
 
-    for (unsigned long i = 0; i < framesPerBuffer; i++) {
-        SampleType sample = static_cast<SampleType>(*rptr++);
-        stream->write(reinterpret_cast<char*>(&sample), sizeof(SampleType));
-    }
+    Aws::Vector<unsigned char> bits { beg, end };
+    Aws::TranscribeStreamingService::Model::AudioEvent event(std::move(bits));
+    stream->WriteAudioEvent(event);
 
     if (Finished == paComplete) {
         pasignal.Release(); // signal the main thread to close the stream and exit
@@ -33,7 +34,7 @@ static int AudioCaptureCallback(const void* inputBuffer, void* outputBuffer, uns
 
 void interruptHandler(int) { Finished = paComplete; }
 
-int CaptureAudio(Aws::IOStream& targetStream)
+int CaptureAudio(Aws::TranscribeStreamingService::Model::AudioStream& targetStream)
 {
     signal(SIGINT, interruptHandler); // handle ctrl-c
     PaStreamParameters inputParameters;
@@ -80,6 +81,7 @@ int CaptureAudio(Aws::IOStream& targetStream)
     if ((err = Pa_IsStreamActive(stream)) == 1) {
         pasignal.WaitOne();
     }
+    printf("ending it\n");
 
     if (err < 0) {
         goto done;
