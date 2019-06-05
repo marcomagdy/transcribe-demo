@@ -18,7 +18,11 @@ int main()
     options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Trace;
     Aws::InitAPI(options);
     {
-        TranscribeStreamingServiceClient client;
+        Aws::Client::ClientConfiguration config;
+#ifdef _WIN32
+        config.httpLibOverride = Aws::Http::TransferLibType::WIN_INET_CLIENT;
+#endif
+        TranscribeStreamingServiceClient client(config);
         StartStreamTranscriptionHandler handler;
         handler.SetTranscriptEventCallback([](const TranscriptEvent& ev) {
             for (auto&& r : ev.GetTranscript().GetResults()) {
